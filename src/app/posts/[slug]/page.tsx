@@ -8,7 +8,10 @@ import rehypeHighlight from 'rehype-highlight'
 
 async function getPost(slug: string) {
   try {
-    const res = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/posts/${slug}`, {
+    const baseUrl = process.env.NEXTAUTH_URL 
+      || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '')
+      || 'http://localhost:3000'
+    const res = await fetch(`${baseUrl}/api/posts/${slug}`, {
       cache: 'no-store',
     })
 

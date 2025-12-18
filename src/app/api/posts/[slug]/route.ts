@@ -86,10 +86,38 @@ export async function PUT(
       )
     }
 
+    // Generate new slug if title changed
+    let newSlug = existingPost.slug
+    if (title !== existingPost.title) {
+      newSlug = title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '')
+
+      // Check if new slug already exists (excluding current post)
+      let uniqueSlug = newSlug
+      let counter = 1
+
+      while (true) {
+        const conflictingPost = await prisma.post.findUnique({
+          where: { slug: uniqueSlug },
+        })
+
+        if (!conflictingPost || conflictingPost.id === existingPost.id) {
+          newSlug = uniqueSlug
+          break
+        }
+
+        uniqueSlug = `${newSlug}-${counter}`
+        counter++
+      }
+    }
+
     const post = await prisma.post.update({
       where: { slug },
       data: {
         title,
+        slug: newSlug,
         content,
         excerpt,
         published,

@@ -5,8 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 async function getPosts() {
   try {
     const baseUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : 'http://localhost:3000'
+      || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '')
+      || 'http://localhost:3000'
 
     const res = await fetch(`${baseUrl}/api/posts`, {
       next: { revalidate: 60 }, // Revalidate every 60 seconds

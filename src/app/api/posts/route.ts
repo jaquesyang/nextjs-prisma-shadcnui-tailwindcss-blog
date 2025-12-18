@@ -71,20 +71,27 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const slug = title
+    let slug = title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '')
 
-    const existingPost = await prisma.post.findUnique({
-      where: { slug },
-    })
+    // Check if slug already exists and add unique identifier if needed
+    let uniqueSlug = slug
+    let counter = 1
 
-    if (existingPost) {
-      return NextResponse.json(
-        { message: 'A post with this title already exists' },
-        { status: 400 }
-      )
+    while (true) {
+      const existingPost = await prisma.post.findUnique({
+        where: { slug: uniqueSlug },
+      })
+
+      if (!existingPost) {
+        slug = uniqueSlug
+        break
+      }
+
+      uniqueSlug = `${slug}-${counter}`
+      counter++
     }
 
     const readTime = Math.ceil(content.split(' ').length / 200)

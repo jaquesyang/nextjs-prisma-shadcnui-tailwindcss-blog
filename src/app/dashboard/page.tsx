@@ -19,6 +19,18 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { toast } from 'sonner'
 import '@/types/auth'
 
 interface Post {
@@ -38,6 +50,11 @@ export default function Dashboard() {
   const [showEditor, setShowEditor] = useState(false)
   const [editingPost, setEditingPost] = useState<Post | null>(null)
   const [loading, setLoading] = useState(true)
+  const [showChangePassword, setShowChangePassword] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [changingPassword, setChangingPassword] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -113,6 +130,48 @@ export default function Dashboard() {
     }
   }
 
+  const handleChangePassword = async () => {
+    if (newPassword !== confirmPassword) {
+      toast.error('New passwords do not match')
+      return
+    }
+
+    if (newPassword.length < 6) {
+      toast.error('New password must be at least 6 characters long')
+      return
+    }
+
+    setChangingPassword(true)
+    try {
+      const response = await fetch('/api/user/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to change password')
+      }
+
+      toast.success('Password changed successfully')
+      setShowChangePassword(false)
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to change password')
+    } finally {
+      setChangingPassword(false)
+    }
+  }
+
   if (status === 'loading' || loading) {
     return <div className="flex justify-center items-center min-h-screen">Loading...</div>
   }
@@ -149,9 +208,65 @@ export default function Dashboard() {
                   <Button variant="outline">Admin Panel</Button>
                 </Link>
               )}
-              <Button onClick={() => setShowEditor(true)}>
-                New Post
-              </Button>
+              <Dialog open={showChangePassword} onOpenChange={setShowChangePassword}>
+                <DialogTrigger asChild>
+                  <Button variant="outline">Change Password</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Change Password</DialogTitle>
+                    <DialogDescription>
+                      Enter your current password and a new password to change your password.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="current-password">Current Password</Label>
+                      <Input
+                        id="current-password"
+                        type="password"
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        placeholder="Enter current password"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="new-password">New Password</Label>
+                      <Input
+                        id="new-password"
+                        type="password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="Enter new password (min 6 characters)"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="confirm-password">Confirm New Password</Label>
+                      <Input
+                        id="confirm-password"
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Confirm new password"
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowChangePassword(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleChangePassword}
+                      disabled={changingPassword}
+                    >
+                      {changingPassword ? 'Changing...' : 'Change Password'}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="outline">Sign Out</Button>
@@ -179,7 +294,12 @@ export default function Dashboard() {
       <main className="max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <Card>
           <CardHeader>
-            <CardTitle>Your Posts</CardTitle>
+            <div className="flex justify-between items-center">
+              <CardTitle>Your Posts</CardTitle>
+              <Button onClick={() => setShowEditor(true)}>
+                New Post
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {posts.length === 0 ? (
