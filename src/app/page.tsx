@@ -4,8 +4,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 async function getPosts() {
   try {
-    const res = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/posts`, {
-      cache: 'no-store',
+    const baseUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : 'http://localhost:3000'
+
+    const res = await fetch(`${baseUrl}/api/posts`, {
+      next: { revalidate: 60 }, // Revalidate every 60 seconds
     })
 
     if (!res.ok) {
@@ -15,7 +19,7 @@ async function getPosts() {
     return res.json()
   } catch (error) {
     console.error('Error fetching posts:', error)
-    return []
+    return { posts: [] }
   }
 }
 
