@@ -21,8 +21,7 @@ export async function GET(request: NextRequest) {
       where: {
         authorId: session.user.id,
         published: published === 'all' ? undefined :
-                published === 'true' ? true :
-                published === 'false' ? false : undefined,
+                published === 'false' ? false : true,
       },
       include: {
         author: {

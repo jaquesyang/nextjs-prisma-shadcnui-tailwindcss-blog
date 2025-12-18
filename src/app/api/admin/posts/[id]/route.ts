@@ -2,16 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { isAdmin } from '@/lib/permissions'
+import { isAdmin, Role } from '@/lib/permissions'
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
 
-    if (!session?.user?.id || !isAdmin(session.user.role as any)) {
+    if (!session?.user?.id || !isAdmin(session.user.role as Role)) {
       return NextResponse.json(
         { message: 'Unauthorized' },
         { status: 401 }
@@ -19,7 +20,7 @@ export async function DELETE(
     }
 
     const post = await prisma.post.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: { author: true }
     })
 
@@ -32,7 +33,7 @@ export async function DELETE(
 
     // Admin can delete any post
     await prisma.post.delete({
-      where: { id: params.id }
+      where: { id }
     })
 
     return NextResponse.json(
@@ -50,12 +51,13 @@ export async function DELETE(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
 
-    if (!session?.user?.id || !isAdmin(session.user.role as any)) {
+    if (!session?.user?.id || !isAdmin(session.user.role as Role)) {
       return NextResponse.json(
         { message: 'Unauthorized' },
         { status: 401 }
@@ -65,7 +67,7 @@ export async function PATCH(
     const { published } = await request.json()
 
     const post = await prisma.post.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: { author: true }
     })
 
@@ -78,7 +80,7 @@ export async function PATCH(
 
     // Admin can publish/unpublish any post
     const updatedPost = await prisma.post.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         published,
         publishedAt: published ? new Date() : null

@@ -55,7 +55,7 @@ export default function AdminDashboard() {
   const router = useRouter()
   const [users, setUsers] = useState<User[]>([])
   const [posts, setPosts] = useState<Post[]>([])
-  const [settings, setSettings] = useState<Settings>({})
+  const [settings, setSettings] = useState<Settings>({} as Settings)
   const [activeTab, setActiveTab] = useState<'users' | 'posts' | 'settings'>('users')
   const [loading, setLoading] = useState(true)
 
@@ -148,9 +148,14 @@ export default function AdminDashboard() {
 
       if (response.ok) {
         fetchData()
+      } else {
+        const error = await response.json()
+        console.error('Failed to delete post:', error.message)
+        // You could add a toast notification here
       }
     } catch (error) {
       console.error('Error deleting post:', error)
+      // You could add a toast notification here
     }
   }
 
@@ -166,9 +171,14 @@ export default function AdminDashboard() {
 
       if (response.ok) {
         fetchData()
+      } else {
+        const error = await response.json()
+        console.error('Failed to update post:', error.message)
+        // You could add a toast notification here
       }
     } catch (error) {
       console.error('Error updating post:', error)
+      // You could add a toast notification here
     }
   }
 
@@ -354,13 +364,30 @@ export default function AdminDashboard() {
                       <Link href={`/posts/${post.slug}`}>
                         <Button variant="outline" size="sm">View</Button>
                       </Link>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => togglePostPublish(post.id, post.published)}
-                      >
-                        {post.published ? 'Unpublish' : 'Publish'}
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" size="sm">
+                            {post.published ? 'Unpublish' : 'Publish'}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              {post.published ? 'Unpublish post' : 'Publish post'}
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to {post.published ? 'unpublish' : 'publish'} "{post.title}"?
+                              {post.published ? ' It will no longer be visible to the public.' : ' It will be visible to the public.'}
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => togglePostPublish(post.id, post.published)}>
+                              {post.published ? 'Unpublish' : 'Publish'}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button variant="destructive" size="sm">

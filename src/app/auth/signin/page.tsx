@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -13,6 +13,14 @@ import { toast } from 'sonner'
 export default function SignIn() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [allowRegistration, setAllowRegistration] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    fetch('/api/settings/registration')
+      .then(res => res.json())
+      .then(data => setAllowRegistration(data.allowRegistration))
+      .catch(console.error)
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -78,12 +86,14 @@ export default function SignIn() {
               {loading ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
-          <p className="mt-4 text-center text-sm text-gray-600">
-            Don't have an account?{' '}
-            <Link href="/auth/signup" className="text-blue-600 hover:underline">
-              Sign up
-            </Link>
-          </p>
+          {allowRegistration && (
+            <p className="mt-4 text-center text-sm text-gray-600">
+              Don't have an account?{' '}
+              <Link href="/auth/signup" className="text-blue-600 hover:underline">
+                Sign up
+              </Link>
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>

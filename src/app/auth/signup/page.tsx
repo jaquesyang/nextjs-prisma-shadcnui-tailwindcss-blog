@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -12,6 +12,36 @@ import { toast } from 'sonner'
 export default function SignUp() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [allowRegistration, setAllowRegistration] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    fetch('/api/settings/registration')
+      .then(res => res.json())
+      .then(data => {
+        if (!data.allowRegistration) {
+          router.replace('/auth/signin')
+          return
+        }
+        setAllowRegistration(data.allowRegistration)
+      })
+      .catch(console.error)
+  }, [router])
+
+  if (allowRegistration === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6">
+            <div className="text-center">Loading...</div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (allowRegistration === false) {
+    return null // Will be redirected by useEffect
+  }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()

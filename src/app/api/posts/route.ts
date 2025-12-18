@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
 
     const posts = await prisma.post.findMany({
       where: {
-        published: published === 'true' ? true : undefined,
+        published: published === 'all' ? undefined : published === 'false' ? false : true,
       },
       include: {
         author: {
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
 
     const total = await prisma.post.count({
       where: {
-        published: published === 'true' ? true : undefined,
+        published: published === 'all' ? undefined : published === 'false' ? false : true,
       },
     })
 
