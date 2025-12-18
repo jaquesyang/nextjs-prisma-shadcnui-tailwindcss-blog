@@ -47,7 +47,7 @@ npm install
 3. Set up environment variables:
    - Copy the `.env` file and update it with your Supabase credentials:
    ```env
-   DATABASE_URL="postgresql://postgres:WQMDSJIbiX9sQjSN@db.epwfgclfuwlbczhfammj.supabase.co:5432/postgres"
+   DATABASE_URL="postgresql://postgres:<YOUR_PASSWORD>@db.xxxxxxxxxxxxxxx.supabase.co:5432/postgres"
    NEXTAUTH_SECRET="your-secret-key-here-change-this-in-production"
    NEXTAUTH_URL="http://localhost:3000"
    ```
