@@ -66,6 +66,9 @@ export async function PUT(
 
     const { title, content, excerpt, published, featured, tags, coverImage } = await request.json()
 
+    // Convert tags to lowercase for consistent storage
+    const normalizedTags = tags ? tags.map((tag: string) => tag.toLowerCase()) : []
+
     // First check if the post exists and belongs to the user
     const existingPost = await prisma.post.findUnique({
       where: { slug },
@@ -122,7 +125,7 @@ export async function PUT(
         excerpt,
         published,
         featured,
-        tags,
+        tags: normalizedTags,
         coverImage,
         publishedAt: published && !existingPost.published ? new Date() : undefined,
         readTime: Math.ceil(content.split(' ').length / 200),

@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Personal Blog",
-  description: "A personal blog built with Next.js and Prisma",
+  title: "NPST Blog",
+  description: "A simple blog built with Next.js and Prisma",
 };
 
 export default function RootLayout({

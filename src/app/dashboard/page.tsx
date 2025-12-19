@@ -30,7 +30,11 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Pagination } from '@/components/ui/pagination'
+import { Search } from '@/components/ui/search'
+import { Highlight } from '@/components/ui/highlight'
 import { toast } from 'sonner'
+import { formatDate } from '@/lib/utils'
 import '@/types/auth'
 
 interface Post {
@@ -41,6 +45,12 @@ interface Post {
   featured: boolean
   createdAt: string
   updatedAt: string
+}
+
+interface PostsResponse {
+  posts: Post[]
+  total: number
+  hasMore: boolean
 }
 
 export default function Dashboard() {
@@ -56,6 +66,15 @@ export default function Dashboard() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [changingPassword, setChangingPassword] = useState(false)
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPosts, setTotalPosts] = useState(0)
+  const [searchQuery, setSearchQuery] = useState('')
+  const postsPerPage = 10
+
+  // Calculate total pages
+  const totalPages = Math.ceil(totalPosts / postsPerPage)
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth/signin')
@@ -66,18 +85,31 @@ export default function Dashboard() {
     if (status === 'authenticated') {
       fetchPosts()
     }
-  }, [status])
+  }, [status, currentPage, searchQuery])
 
   const fetchPosts = async () => {
     try {
-      const response = await fetch('/api/posts/my?published=all')
-      const data = await response.json()
-      setPosts(data || [])
+      const offset = (currentPage - 1) * postsPerPage
+
+      // Use search endpoint if there's a search query, otherwise use regular posts endpoint
+      const endpoint = searchQuery.trim()
+        ? `/api/posts/search?q=${encodeURIComponent(searchQuery)}&authorId=${session?.user?.id}&limit=${postsPerPage}&offset=${offset}`
+        : `/api/posts/my?published=all&limit=${postsPerPage}&offset=${offset}`
+
+      const response = await fetch(endpoint)
+      const data: PostsResponse = await response.json()
+      setPosts(data.posts || [])
+      setTotalPosts(data.total || 0)
     } catch (error) {
       console.error('Error fetching posts:', error)
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query)
+    setCurrentPage(1) // Reset to first page when searching
   }
 
   const handleSavePost = async (postData: any) => {
@@ -300,9 +332,22 @@ export default function Dashboard() {
                 New Post
               </Button>
             </div>
+            <div className="flex justify-between items-center mt-4">
+              <Search
+                onSearch={handleSearch}
+                placeholder="Search your posts..."
+                className="w-full max-w-md"
+              />
+              {totalPosts > 0 && (
+                <span className="text-sm text-gray-600">
+                  Showing {posts.length} of {totalPosts} posts
+                  {searchQuery.trim() && ` for "${searchQuery}"`}
+                </span>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
-            {posts.length === 0 ? (
+            {posts.length === 0 && totalPosts === 0 ? (
               <div className="text-center py-8">
                 <p className="text-gray-600 mb-4">You haven't created any posts yet.</p>
                 <Button onClick={() => setShowEditor(true)}>
@@ -310,56 +355,67 @@ export default function Dashboard() {
                 </Button>
               </div>
             ) : (
-              <div className="space-y-4">
-                {posts.map((post) => (
-                  <div
-                    key={post.id}
-                    className="flex items-center justify-between p-4 border rounded-lg"
-                  >
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-lg">{post.title}</h3>
-                      <div className="flex items-center space-x-4 mt-1">
-                        <span className={`px-2 py-1 text-xs rounded ${
-                          post.published
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {post.published ? 'Published' : 'Draft'}
-                        </span>
-                        {post.featured && (
-                          <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
-                            Featured
+              <>
+                <div className="space-y-4">
+                  {posts.map((post) => (
+                    <div
+                      key={post.id}
+                      className="flex items-center justify-between p-4 border rounded-lg"
+                    >
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-lg">
+                          <Highlight text={post.title} highlight={searchQuery} />
+                        </h3>
+                        <div className="flex items-center space-x-4 mt-1">
+                          <span className={`px-2 py-1 text-xs rounded ${
+                            post.published
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {post.published ? 'Published' : 'Draft'}
                           </span>
-                        )}
-                        <span className="text-sm text-gray-500">
-                          Last updated: {new Date(post.updatedAt).toLocaleDateString()}
-                        </span>
+                          {post.featured && (
+                            <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+                              Featured
+                            </span>
+                          )}
+                          <span className="text-sm text-gray-500">
+                            Last updated: {formatDate(post.updatedAt)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Link href={`/posts/${post.slug}`}>
+                          <Button variant="outline" size="sm">
+                            View
+                          </Button>
+                        </Link>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEdit(post)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDelete(post.id)}
+                        >
+                          Delete
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Link href={`/posts/${post.slug}`}>
-                        <Button variant="outline" size="sm">
-                          View
-                        </Button>
-                      </Link>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(post)}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDelete(post.id)}
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+
+                {/* Pagination */}
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                />
+              </>
             )}
           </CardContent>
         </Card>

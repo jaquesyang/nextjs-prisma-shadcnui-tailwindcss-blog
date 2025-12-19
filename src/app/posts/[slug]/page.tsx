@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
+import { formatDate } from '@/lib/utils'
 
 async function getPost(slug: string) {
   try {
@@ -57,11 +58,7 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
                     {post.author?.name || 'Anonymous'}
                   </p>
                   <p className="text-sm text-gray-500">
-                    {new Date(post.publishedAt || post.createdAt).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                    })}
+                    {formatDate(post.publishedAt || post.createdAt)}
                   </p>
                 </div>
               </div>

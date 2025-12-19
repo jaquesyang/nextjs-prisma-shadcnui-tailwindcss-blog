@@ -64,6 +64,9 @@ export async function POST(request: NextRequest) {
 
     const { title, content, excerpt, published, featured, tags, coverImage } = await request.json()
 
+    // Convert tags to lowercase for consistent storage
+    const normalizedTags = tags ? tags.map((tag: string) => tag.toLowerCase()) : []
+
     if (!title || !content) {
       return NextResponse.json(
         { message: 'Title and content are required' },
@@ -104,7 +107,7 @@ export async function POST(request: NextRequest) {
         excerpt,
         published: published || false,
         featured: featured || false,
-        tags: tags || [],
+        tags: normalizedTags,
         readTime,
         coverImage,
         publishedAt: published ? new Date() : null,

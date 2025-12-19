@@ -1,6 +1,6 @@
-# Personal Blog
+# NPST Blog
 
-A personal blog built with Next.js, Prisma, shadcn/ui, and TailwindCSS, using Supabase as the database.
+A simple blog built with Next.js, Prisma, shadcn/ui, and TailwindCSS, using Supabase as the database.
 
 ## Features
 
@@ -36,7 +36,7 @@ A personal blog built with Next.js, Prisma, shadcn/ui, and TailwindCSS, using Su
 1. Clone the repository:
 ```bash
 git clone <repository-url>
-cd personal-blog
+cd npst-blog
 ```
 
 2. Install dependencies:

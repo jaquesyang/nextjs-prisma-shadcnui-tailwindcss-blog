@@ -18,7 +18,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
+import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
 import { isAdmin } from '@/lib/permissions'
+import { formatDate } from '@/lib/utils'
+import { Search } from '@/components/ui/search'
+import { Highlight } from '@/components/ui/highlight'
 import '@/types/auth'
 
 interface User {
@@ -50,6 +54,12 @@ interface Settings {
   ALLOW_REGISTRATION: string
 }
 
+interface PostsResponse {
+  posts: Post[]
+  total: number
+  hasMore: boolean
+}
+
 export default function AdminDashboard() {
   const { data: session, status } = useSession()
   const router = useRouter()
@@ -58,6 +68,34 @@ export default function AdminDashboard() {
   const [settings, setSettings] = useState<Settings>({} as Settings)
   const [activeTab, setActiveTab] = useState<'users' | 'posts' | 'settings'>('users')
   const [loading, setLoading] = useState(true)
+
+  // Pagination states for posts
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPosts, setTotalPosts] = useState(0)
+  const [searchQuery, setSearchQuery] = useState('')
+  const postsPerPage = 10
+
+  // Calculate total pages
+  const totalPages = Math.ceil(totalPosts / postsPerPage)
+
+  // Handle tab change and reset pagination
+  const handleTabChange = (tab: 'users' | 'posts' | 'settings') => {
+    setActiveTab(tab)
+    if (tab === 'posts') {
+      setCurrentPage(1) // Reset to first page when switching to posts
+    }
+  }
+
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+  }
+
+  // Handle search
+  const handleSearch = (query: string) => {
+    setSearchQuery(query)
+    setCurrentPage(1) // Reset to first page when searching
+  }
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -71,7 +109,7 @@ export default function AdminDashboard() {
     if (status === 'authenticated' && isAdmin(session?.user?.role as any)) {
       fetchData()
     }
-  }, [status, session, activeTab])
+  }, [status, session, activeTab, currentPage, searchQuery])
 
   const fetchData = async () => {
     setLoading(true)
@@ -81,9 +119,15 @@ export default function AdminDashboard() {
         const data = await response.json()
         setUsers(data.users || [])
       } else if (activeTab === 'posts') {
-        const response = await fetch('/api/posts?published=all')
-        const data = await response.json()
+        const offset = (currentPage - 1) * postsPerPage
+        // Use search endpoint if there's a search query, otherwise use regular posts endpoint
+        const endpoint = searchQuery.trim()
+          ? `/api/posts/search?q=${encodeURIComponent(searchQuery)}&limit=${postsPerPage}&offset=${offset}`
+          : `/api/posts?published=all&limit=${postsPerPage}&offset=${offset}`
+        const response = await fetch(endpoint)
+        const data: PostsResponse = await response.json()
         setPosts(data.posts || [])
+        setTotalPosts(data.total || 0)
       } else if (activeTab === 'settings') {
         const response = await fetch('/api/settings')
         const data = await response.json()
@@ -147,7 +191,12 @@ export default function AdminDashboard() {
       })
 
       if (response.ok) {
-        fetchData()
+        // If we're on the last page and it becomes empty after deletion, go to previous page
+        if (posts.length === 1 && currentPage > 1) {
+          setCurrentPage(currentPage - 1)
+        } else {
+          fetchData()
+        }
       } else {
         const error = await response.json()
         console.error('Failed to delete post:', error.message)
@@ -231,7 +280,7 @@ export default function AdminDashboard() {
         <div className="mb-8">
           <div className="flex space-x-1 border-b">
             <button
-              onClick={() => setActiveTab('users')}
+              onClick={() => handleTabChange('users')}
               className={`py-2 px-4 border-b-2 font-medium text-sm ${
                 activeTab === 'users'
                   ? 'border-blue-500 text-blue-600'
@@ -241,7 +290,7 @@ export default function AdminDashboard() {
               Users
             </button>
             <button
-              onClick={() => setActiveTab('posts')}
+              onClick={() => handleTabChange('posts')}
               className={`py-2 px-4 border-b-2 font-medium text-sm ${
                 activeTab === 'posts'
                   ? 'border-blue-500 text-blue-600'
@@ -251,7 +300,7 @@ export default function AdminDashboard() {
               Posts
             </button>
             <button
-              onClick={() => setActiveTab('settings')}
+              onClick={() => handleTabChange('settings')}
               className={`py-2 px-4 border-b-2 font-medium text-sm ${
                 activeTab === 'settings'
                   ? 'border-blue-500 text-blue-600'
@@ -337,7 +386,22 @@ export default function AdminDashboard() {
         {activeTab === 'posts' && (
           <Card>
             <CardHeader>
-              <CardTitle>All Posts</CardTitle>
+              <div className="flex justify-between items-center">
+                <CardTitle>All Posts</CardTitle>
+              </div>
+              <div className="flex justify-between items-center mt-4">
+                <Search
+                  onSearch={handleSearch}
+                  placeholder="Search all posts..."
+                  className="w-full max-w-md"
+                />
+                {totalPosts > 0 && (
+                  <span className="text-sm text-gray-600">
+                    Showing {posts.length} of {totalPosts} posts
+                    {searchQuery.trim() && ` for "${searchQuery}"`}
+                  </span>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -347,9 +411,11 @@ export default function AdminDashboard() {
                     className="flex items-center justify-between p-4 border rounded-lg"
                   >
                     <div className="flex-1">
-                      <h3 className="font-semibold">{post.title}</h3>
+                      <h3 className="font-semibold">
+                        <Highlight text={post.title} highlight={searchQuery} />
+                      </h3>
                       <p className="text-sm text-gray-600">
-                        By {post.author.name} • {new Date(post.createdAt).toLocaleDateString()}
+                        By {post.author.name} • {formatDate(post.createdAt)}
                       </p>
                       <div className="flex items-center space-x-2 mt-1">
                         <Badge variant={post.published ? 'default' : 'secondary'}>
@@ -413,6 +479,66 @@ export default function AdminDashboard() {
                   </div>
                 ))}
               </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-6 pt-6 border-t">
+                  <div className="text-sm text-gray-600">
+                    Page {currentPage} of {totalPages}
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className="flex items-center space-x-1"
+                    >
+                      <ChevronLeftIcon className="h-4 w-4" />
+                      <span>Previous</span>
+                    </Button>
+
+                    {/* Page numbers */}
+                    <div className="flex items-center space-x-1">
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        let pageNum;
+                        if (totalPages <= 5) {
+                          pageNum = i + 1;
+                        } else if (currentPage <= 3) {
+                          pageNum = i + 1;
+                        } else if (currentPage >= totalPages - 2) {
+                          pageNum = totalPages - 4 + i;
+                        } else {
+                          pageNum = currentPage - 2 + i;
+                        }
+
+                        return (
+                          <Button
+                            key={pageNum}
+                            variant={currentPage === pageNum ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => handlePageChange(pageNum)}
+                            className="min-w-8"
+                          >
+                            {pageNum}
+                          </Button>
+                        );
+                      })}
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                      className="flex items-center space-x-1"
+                    >
+                      <span>Next</span>
+                      <ChevronRightIcon className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}

@@ -16,6 +16,8 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const published = searchParams.get('published')
+    const limit = searchParams.get('limit')
+    const offset = searchParams.get('offset')
 
     const posts = await prisma.post.findMany({
       where: {
@@ -36,9 +38,23 @@ export async function GET(request: NextRequest) {
       orderBy: {
         createdAt: 'desc',
       },
+      take: limit ? parseInt(limit) : undefined,
+      skip: offset ? parseInt(offset) : undefined,
     })
 
-    return NextResponse.json(posts)
+    const total = await prisma.post.count({
+      where: {
+        authorId: session.user.id,
+        published: published === 'all' ? undefined :
+                published === 'false' ? false : true,
+      },
+    })
+
+    return NextResponse.json({
+      posts,
+      total,
+      hasMore: offset ? parseInt(offset) + posts.length < total : posts.length < total,
+    })
   } catch (error) {
     console.error('Error fetching user posts:', error)
     return NextResponse.json(
