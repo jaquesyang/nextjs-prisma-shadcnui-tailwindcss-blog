@@ -556,12 +556,32 @@ export default function AdminDashboard() {
                     Enable or disable new user registration
                   </p>
                 </div>
-                <Button
-                  variant="outline"
-                  onClick={toggleRegistration}
-                >
-                  {settings.ALLOW_REGISTRATION === 'true' ? 'Disable' : 'Enable'}
-                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline">
+                      {settings.ALLOW_REGISTRATION === 'true' ? 'Disable' : 'Enable'}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        {settings.ALLOW_REGISTRATION === 'true' ? 'Disable Registration' : 'Enable Registration'}
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {settings.ALLOW_REGISTRATION === 'true'
+                          ? 'Are you sure you want to disable new user registration? This will prevent new users from creating accounts on your blog.'
+                          : 'Are you sure you want to enable new user registration? This will allow anyone to create an account on your blog.'
+                        }
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={toggleRegistration}>
+                        {settings.ALLOW_REGISTRATION === 'true' ? 'Disable' : 'Enable'}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
               <div className="p-3 bg-gray-50 rounded">
                 <p className="text-sm text-gray-600">
